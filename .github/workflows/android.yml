@@ -44,6 +44,113 @@ jobs:
             "configuration_version": "1"
           }' > app/google-services.json
 
+      - name: Replace Broken AI Studio Code with Fresh Working Code
+        run: |
+          mkdir -p app/src/main/java/com/example
+          cat << 'EOF' > app/src/main/java/com/example/MainActivity.kt
+          package com.example
+
+          import android.os.Bundle
+          import androidx.activity.ComponentActivity
+          import androidx.activity.compose.setContent
+          import androidx.compose.foundation.layout.*
+          import androidx.compose.material3.*
+          import androidx.compose.runtime.*
+          import androidx.compose.ui.Alignment
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.unit.dp
+          import androidx.compose.ui.unit.sp
+
+          class MainActivity : ComponentActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  setContent {
+                      MaterialTheme {
+                          Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                              CalculatorVaultApp()
+                          }
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          fun CalculatorVaultApp() {
+              var displayText by remember { mutableStateOf("") }
+              var isVaultOpen by remember { mutableStateOf(false) }
+
+              if (isVaultOpen) {
+                  VaultScreen(onBack = { isVaultOpen = false })
+              } else {
+                  CalculatorScreen(
+                      displayText = displayText,
+                      onValueChange = { displayText = it },
+                      onUnlock = { isVaultOpen = true }
+                  )
+              }
+          }
+
+          @Composable
+          fun CalculatorScreen(displayText: String, onValueChange: (String) -> Unit, onUnlock: () -> Unit) {
+              Column(
+                  modifier = Modifier.fillMaxSize().padding(16.dp),
+                  verticalArrangement = Arrangement.SpaceBetween,
+                  horizontalAlignment = Alignment.CenterHorizontally
+              ) {
+                  Text(text = displayText.ifEmpty { "0" }, fontSize = 48.sp, modifier = Modifier.fillMaxWidth().padding(16.dp))
+                  Column {
+                      val buttons = listOf(
+                          listOf("7", "8", "9", "/"),
+                          listOf("4", "5", "6", "*"),
+                          listOf("1", "2", "3", "-"),
+                          listOf("C", "0", "=", "+")
+                      )
+                      buttons.forEach { row ->
+                          Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                              row.forEach { char ->
+                                  Button(
+                                      onClick = {
+                                          if (char == "C") {
+                                              onValueChange("")
+                                          } else if (char == "=") {
+                                              if (displayText == "1234") { // এটি আপনার পিন কোড
+                                                  onUnlock()
+                                              } else {
+                                                  onValueChange("Error")
+                                              }
+                                          } else {
+                                              onValueChange(displayText + char)
+                                          }
+                                      },
+                                      modifier = Modifier.padding(4.dp).size(64.dp)
+                                  ) {
+                                      Text(text = char, fontSize = 24.sp)
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          fun VaultScreen(onBack: () -> Unit) {
+              Column(
+                  modifier = Modifier.fillMaxSize().padding(16.dp),
+                  verticalArrangement = Arrangement.Center,
+                  horizontalAlignment = Alignment.CenterHorizontally
+              ) {
+                  Text(text = "🔒 Secret Vault Opened!", fontSize = 28.sp, color = MaterialTheme.colorScheme.primary)
+                  Spacer(modifier = Modifier.height(16.dp))
+                  Text(text = "Your hidden folder is safe here.", fontSize = 16.sp)
+                  Spacer(modifier = Modifier.height(32.dp))
+                  Button(onClick = onBack) {
+                      Text(text = "Lock & Go to Calculator")
+                  }
+              }
+          }
+          EOF
+
       - name: set up JDK 17
         uses: actions/setup-java@v4
         with:
